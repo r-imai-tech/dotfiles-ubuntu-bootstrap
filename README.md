@@ -90,7 +90,7 @@
 ```bash
 # 任意のディレクトリに移動し、リポジトリをクローン
 cd ~
-git clone https://github.com/<ユーザー名>/dotfiles-fish-bootstrap.git ~/dotfiles
+git clone https://github.com/r-imai-tech/dotfiles-fish-bootstrap.git ~/dotfiles
 cd ~/dotfiles
 ```
 
