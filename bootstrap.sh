@@ -59,7 +59,7 @@ fi
 # ------------------------------------------------------------------------------
 # 4) Fish 用設定: ~/.config/fish/config.fish に PATH を追加
 # ------------------------------------------------------------------------------
-FISH_CONFIG="$HOME/.config/fish/config.fish"
+FISH_CONFIG="$HOME/dotfiles-ubuntu-bootstrap/config/dotfiles/fish/config.fish"
 log "Fish シェル用に Homebrew の PATH を追加します: $FISH_CONFIG"
 
 mkdir -p "$(dirname "$FISH_CONFIG")"
@@ -80,5 +80,9 @@ log "install_homebrew.sh が完了しました。"
 # ※ このスクリプトは source で実行してください。bash に brew の PATH を即時反映するためです。
 #   Bootstrap.sh 内では以下のように実行します:
 #     source ./bootstrap/scripts/install_homebrew.sh
+
+./bootstrap/scripts/install_brew_packages.sh
+./bootstrap/scripts/install_fisher.sh
+./bootstrap/scripts/install_fish_plugins_extra.sh
 
 exit 0
