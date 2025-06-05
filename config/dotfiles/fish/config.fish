@@ -111,13 +111,15 @@ alias g="git"
 # 6. OS 判定による分岐（Linux / macOS）
 switch (uname)
     case Linux
-        # Linux 固有の設定があればここに書く
-        # 例: ディストリビューション固有の環境変数
+        # Linux 固有の設定
+        set -gx PATH /home/linuxbrew/.linuxbrew/bin $PATH
+        set -gx MANPATH /home/linuxbrew/.linuxbrew/share/man $MANPATH
+        set -gx INFOPATH /home/linuxbrew/.linuxbrew/share/info $INFOPATH
+
     case Darwin
-        # macOS 固有の設定があればここに書く
-        # 例: バックスラッシュのエイリアス
-        # alias pbcopy="reattach-to-user-namespace pbcopy"
-endset -gx PATH /home/linuxbrew/.linuxbrew/bin $PATH
-set -gx MANPATH /home/linuxbrew/.linuxbrew/share/man $MANPATH
-set -gx INFOPATH /home/linuxbrew/.linuxbrew/share/info $INFOPATH
-set -gx PATH /home/linuxbrew/.linuxbrew/bin $PATH
+        # macOS 固有の設定
+        set -gx PATH /opt/homebrew/bin $PATH
+        set -gx MANPATH /opt/homebrew/share/man $MANPATH
+        set -gx INFOPATH /opt/homebrew/share/info $INFOPATH
+
+end
