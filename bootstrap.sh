@@ -1,41 +1,84 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-#-------------------------------------------------------------------------------
-# bootstrap.sh
-#  - 各モジュールスクリプトを順に呼び出して一括セットアップする
-#
-# 使い方:
-#   chmod +x bootstrap.sh
-#   ./bootstrap.sh
-#-------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# install_homebrew.sh
+#   - Ubuntu 上で Homebrew をインストールし、
+#     Bash と Fish の両方に恒久的に PATH を通すスクリプト
+#   - このスクリプトは source で実行してください (bootstrap.sh 内で source)
+# ------------------------------------------------------------------------------
+
+log() {
+  printf '\e[32m[INFO]\e[0m %s\n' "$*"
+}
+
+# ------------------------------------------------------------------------------
+# ファイルに同一行がなければ追記する関数
+# ------------------------------------------------------------------------------
+append_if_missing() {
+  local line="$1"
+  local file="$2"
+  mkdir -p "$(dirname "$file")"
+  touch "$file"
+  grep -qxF "$line" "$file" 2>/dev/null || echo "$line" >> "$file"
+}
 
 echo
-echo "========================================"
-echo "[INFO] 環境構築を開始します"
-echo "========================================"
+log "Homebrew のインストールを開始します"
+
+# ------------------------------------------------------------------------------
+# 1) Homebrew がインストールされていなければインストール
+# ------------------------------------------------------------------------------
+if ! command -v brew >/dev/null 2>&1; then
+  log "Homebrew が見つからないため、非対話モードでインストールを実行します..."
+  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  log "Homebrew のインストールが完了しました。"
+else
+  log "Homebrew は既にインストール済みです。"
+fi
+
+# ------------------------------------------------------------------------------
+# 2) Homebrew のプレフィックス設定
+#    デフォルトのインストール先: /home/linuxbrew/.linuxbrew
+# ------------------------------------------------------------------------------
+BREW_PREFIX="/home/linuxbrew/.linuxbrew"
+
+# ------------------------------------------------------------------------------
+# 3) Bash 用設定: ~/.bashrc に brew shellenv を追記
+# ------------------------------------------------------------------------------
+BASH_RC="$HOME/.bashrc"
+BREW_SHELLENV="eval \"\$(${BREW_PREFIX}/bin/brew shellenv)\""
+log "~/.bashrc に Homebrew 環境設定を追加します: $BASH_RC"
+append_if_missing "$BREW_SHELLENV" "$BASH_RC"
+
+# -- 即時反映（この bash セッション向け） --
+if [ -x "${BREW_PREFIX}/bin/brew" ]; then
+  eval "$(${BREW_PREFIX}/bin/brew shellenv)"
+fi
+
+# ------------------------------------------------------------------------------
+# 4) Fish 用設定: ~/.config/fish/config.fish に PATH を追加
+# ------------------------------------------------------------------------------
+FISH_CONFIG="$HOME/.config/fish/config.fish"
+log "Fish シェル用に Homebrew の PATH を追加します: $FISH_CONFIG"
+
+mkdir -p "$(dirname "$FISH_CONFIG")"
+touch "$FISH_CONFIG"
+
+# fish は login セッションでなくても config.fish を読み込むので、ここに追記すれば
+# install_fisher.sh や install_fish_plugins_extra.sh 内で fish コマンドを使っても
+# Homebrew のパスが通った状態になります。
+append_if_missing "set -gx PATH ${BREW_PREFIX}/bin \$PATH" "$FISH_CONFIG"
+append_if_missing "set -gx MANPATH ${BREW_PREFIX}/share/man \$MANPATH" "$FISH_CONFIG"
+append_if_missing "set -gx INFOPATH ${BREW_PREFIX}/share/info \$INFOPATH" "$FISH_CONFIG"
+
+log "Fish の設定に Homebrew の PATH を追記しました。"
+
 echo
+log "install_homebrew.sh が完了しました。"
 
-# ─── ① APT deps 導入 ──────────────────────────────────
-bash ./bootstrap/scripts/install_apt_deps.sh
+# ※ このスクリプトは source で実行してください。bash に brew の PATH を即時反映するためです。
+#   Bootstrap.sh 内では以下のように実行します:
+#     source ./bootstrap/scripts/install_homebrew.sh
 
-# ─── ② Homebrew インストール ───────────────────────────
-bash ./bootstrap/scripts/install_homebrew.sh
-
-# ─── ③ brew パッケージ (git, grep) インストール ────────
-bash ./bootstrap/scripts/install_brew_packages.sh
-
-# ─── ④ Fish インストール＆デフォルト化 ───────────────
-bash ./bootstrap/scripts/install_fish.sh
-
-# ─── ⑤ fisher インストール ───────────────
-bash ./bootstrap/scripts/install_fisher.sh
-
-bash ./bootstrap/scripts/install_fish_plugins_extra.sh
-
-echo
-echo "========================================"
-echo "[INFO] 全体のセットアップが完了しました"
-echo "  • 一度ログアウト／再ログイン、または新規ターミナルを開いて"
-echo "    Fish シェルがデフォルトとして起動することを確認してください"
-echo "========================================"
+exit 0

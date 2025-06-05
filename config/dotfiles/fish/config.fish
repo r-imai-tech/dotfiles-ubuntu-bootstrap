@@ -117,4 +117,7 @@ switch (uname)
         # macOS 固有の設定があればここに書く
         # 例: バックスラッシュのエイリアス
         # alias pbcopy="reattach-to-user-namespace pbcopy"
-end
+endset -gx PATH /home/linuxbrew/.linuxbrew/bin $PATH
+set -gx MANPATH /home/linuxbrew/.linuxbrew/share/man $MANPATH
+set -gx INFOPATH /home/linuxbrew/.linuxbrew/share/info $INFOPATH
+set -gx PATH /home/linuxbrew/.linuxbrew/bin $PATH
