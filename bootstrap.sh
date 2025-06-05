@@ -12,6 +12,9 @@ log() {
   printf '\e[32m[INFO]\e[0m %s\n' "$*"
 }
 
+bash ./bootstrap/scripts/install_apt_deps.sh
+bash ./bootstrap/scripts/install_fish.sh
+
 # ------------------------------------------------------------------------------
 # ファイルに同一行がなければ追記する関数
 # ------------------------------------------------------------------------------
@@ -81,8 +84,10 @@ log "install_homebrew.sh が完了しました。"
 #   Bootstrap.sh 内では以下のように実行します:
 #     source ./bootstrap/scripts/install_homebrew.sh
 
-./bootstrap/scripts/install_brew_packages.sh
-./bootstrap/scripts/install_fisher.sh
-./bootstrap/scripts/install_fish_plugins_extra.sh
+bash ./bootstrap/scripts/install_brew_packages.sh
+bash ./bootstrap/scripts/install_fisher.sh
+bash ./bootstrap/scripts/install_fish_plugins_extra.sh
 
-exit 0
+exec fish
+
+log "完了"

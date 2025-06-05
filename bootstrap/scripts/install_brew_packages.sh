@@ -7,15 +7,11 @@ log() {
 
 #-------------------------------------------------------------------------------
 # install_brew_packages.sh
-#  - Homebrew 経由で Git・GNU grep をインストール（またはアップデート）
-#  - eza: Homebrew でのインストールが失敗したら Apt でインストールへフォールバック
+#  - Homebrew 経由で git・GNU grep をインストール（またはアップデート）
+#  - eza: Homebrew → Apt フォールバック
 #  - zoxide: Homebrew ボトルがあればインストール
-#  - ghq: ARM64 向けボトルがなければソースビルド or Go install へフォールバック
+#  - ghq: ARM64 向けボトルがなければ Go を使ってインストール
 #  - 前提: install_homebrew.sh が完了していること
-#
-# 使い方:
-#   chmod +x install_brew_packages.sh
-#   ./install_brew_packages.sh
 #-------------------------------------------------------------------------------
 
 # 1) brew コマンドが存在しなければ、Homebrew の環境を読み込む
@@ -40,7 +36,6 @@ if ! brew list eza &>/dev/null; then
     log "  • eza を Homebrew でインストールしました: $(which eza)"
   else
     log "  • eza の Homebrew ボトルが利用できないため、APT からインストールを試みます"
-    # 以下では sudo を使って apt install します。必要に応じてパスワード入力が求められます。
     sudo apt update
     sudo apt install -y eza
     log "  • eza を APT でインストールしました: $(which eza)"
@@ -49,14 +44,14 @@ else
   log "  • eza は既にインストール済み: $(which eza)"
 fi
 
-# 4) zoxide のインストール（ARM64 向けボトルがあれば Homebrew でインストール）
+# 4) zoxide のインストール（Homebrew ボトルがあれば Homebrew でインストール）
 log "【install_brew_packages】Homebrew 経由で zoxide をインストールまたは確認"
 if ! brew list zoxide &>/dev/null; then
   if brew install zoxide; then
     log "  • zoxide を Homebrew でインストールしました: $(which zoxide)"
   else
     log "  • zoxide の Homebrew ボトルが利用できないため、Apt またはソースビルドを検討してください"
-    # ここで Apt へフォールバックする場合、以下の例のように rust cargo を使ってビルド可能です。
+    # ここで Apt へフォールバックする場合は、以下の例のように Rust toolchain を使ってビルドできます。
     # sudo apt update
     # sudo apt install -y cargo
     # cargo install zoxide
@@ -67,35 +62,47 @@ else
 fi
 
 # 5) ghq のインストール
-#    ARM64 ではボトルが存在しない場合があるため、ビルドにフォールバック
+#    ARM64 向けボトルが存在しない場合、Go を使ってビルド or go install にフォールバック
 log "【install_brew_packages】Homebrew 経由で ghq をインストールまたは確認"
 if brew list ghq &>/dev/null; then
   log "  • ghq は既にインストール済み: $(which ghq)"
 else
-  # 試しに通常インストールを試みる
+  # 5-1) まずは通常通りインストールを試みる
   if brew install ghq; then
     log "  • ghq を Homebrew でインストールしました: $(which ghq)"
   else
-    log "  • ghq のボトルが見つからなかったため、ソースからビルドを試みます"
+    log "  • ghq の瓶（ボトル）が見つからなかったため、ビルドまたは Go install に移行します"
+    # 5-2) Go がインストールされているかチェック。無ければ apt で入れる
+    if ! command -v go &>/dev/null; then
+      log "  • Go が見つからないため、apt でインストールします"
+      sudo apt update
+      sudo apt install -y golang-go
+      log "  • Go をインストールしました: $(which go)"
+    fi
+
+    # 5-3) build-essential が入っているか確認（入っていなければ apt で入れる）
+    if ! dpkg -s build-essential &>/dev/null; then
+      log "  • build-essential が見つからないため、apt でインストールします"
+      sudo apt update
+      sudo apt install -y build-essential
+      log "  • build-essential をインストールしました"
+    fi
+
+    # 5-4) 再度 Homebrew でビルドしてみる
     if brew install --build-from-source ghq; then
       log "  • ghq をソースからビルドしてインストールしました: $(which ghq)"
     else
-      # Homebrew ビルドにも失敗した場合、Go install でフォールバック
-      if command -v go &>/dev/null; then
-        log "  • Go が検出されたため、'go install' で ghq をインストールします"
-        GO_BIN=$(go env GOPATH)/bin
-        export PATH="$GO_BIN:$PATH"
-        go install github.com/x-motemen/ghq@latest
-        log "  • ghq を Go install でインストールしました: $(which ghq)"
-      else
-        echo "[ERROR] ghq のインストールに失敗しました。Go がインストールされていないか、ビルド環境に問題があります。" >&2
-        exit 1
-      fi
+      # 5-5) それでも失敗した場合、go install で最新版をインストール
+      log "  • Homebrew ソースビルドにも失敗したため、go install で ghq をインストールします"
+      GO_BIN="$(go env GOPATH)/bin"
+      export PATH="$GO_BIN:$PATH"
+      go install github.com/x-motemen/ghq@latest
+      log "  • ghq を go install でインストールしました: $(which ghq)"
     fi
   fi
 fi
 
-# 6) インストール状況確認
+# 6) インストール状況確認（出力例）
 log "  • git のパス: $(which git)"
 log "  • grep のパス: $(which grep)"
 log "  • eza のパス: $(which eza)"
