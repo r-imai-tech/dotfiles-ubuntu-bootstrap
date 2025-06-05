@@ -8,6 +8,38 @@ set -euo pipefail
 #   - このスクリプトは source で実行してください (bootstrap.sh 内で source)
 # ------------------------------------------------------------------------------
 
+# ─────────────────────────────────────────────────────────────────────────────
+# (1) リポジトリ内の config/dotfiles/fish を ~/.config/fish に移動する
+# ─────────────────────────────────────────────────────────────────────────────
+
+# まず、スクリプト自身のディレクトリを取得しておく
+# ※ これにより、どこから呼んでも正しくパスを解決できます
+DOTFILES_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# リポジトリ内の元ディレクトリ
+SRC_DIR="$DOTFILES_ROOT/config/dotfiles/fish"
+# 移動先ディレクトリ
+DEST_DIR="$HOME/.config"
+
+# ~/.config ディレクトリがなければ作る
+mkdir -p "$DEST_DIR"
+
+# もし元ディレクトリが存在すれば、~/.config 以下に移動する
+if [ -d "$SRC_DIR" ]; then
+  echo "[INFO] 移動: ${SRC_DIR} → ${DEST_DIR}"
+  mv "$SRC_DIR" "$DEST_DIR"/
+
+  # 移動後、上位の空ディレクトリを削除しておく（※必要なら）
+  #   例: config/dotfiles が空になったら消す
+  PARENT_DIR="$DOTFILES_ROOT/config/dotfiles"
+  if [ -d "$PARENT_DIR" ] && [ -z "$(ls -A "$PARENT_DIR")" ]; then
+    rm -rf "$PARENT_DIR"
+    echo "[INFO] 空になった $PARENT_DIR を削除しました"
+  fi
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+
 log() {
   printf '\e[32m[INFO]\e[0m %s\n' "$*"
 }
