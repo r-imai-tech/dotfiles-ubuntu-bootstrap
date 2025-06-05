@@ -31,6 +31,8 @@ bash ./bootstrap/scripts/install_fish.sh
 # ─── ⑤ fisher インストール ───────────────
 bash ./bootstrap/scripts/install_fisher.sh
 
+bash ./bootstrap/scripts/install_fish_plugins_extra.sh
+
 echo
 echo "========================================"
 echo "[INFO] 全体のセットアップが完了しました"
