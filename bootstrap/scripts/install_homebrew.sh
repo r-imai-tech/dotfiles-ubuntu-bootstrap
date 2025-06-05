@@ -8,139 +8,55 @@ log() {
 #-------------------------------------------------------------------------------
 # install_homebrew.sh
 #  - Homebrew（Linuxbrew）をインストールするスクリプト
-#  - どのユーザーが実行しても、インストール後はシェル(bash, sh, fish)で自動的に `brew` が使えるように設定を追加
-#  - 前提: install_apt_deps.sh がすでに完了していること
+#  - どのユーザーが実行しても、インストール後は Bash シェルで自動的に `brew` が使えるように設定を追加
+#  - 前提: install_apt_deps.sh 等で必要なパッケージ（curl, git, build-essential など）がすでにインストールされていること
 #
 # 使い方:
 #   chmod +x install_homebrew.sh
 #   ./install_homebrew.sh
 #-------------------------------------------------------------------------------
 
-# 1) brew コマンドが存在しなければ、インストール開始
+# ─── 便利関数: ファイルに行が無ければ追記 ───────────────────────────────────
+append_if_missing() {
+  local line="$1" file="$2"
+  # ファイルがなければ作成しておく
+  mkdir -p "$(dirname "$file")"
+  touch "$file"
+  # 行単位で完全一致をチェックし、なければ追記
+  grep -qxF "$line" "$file" 2>/dev/null || echo "$line" >> "$file"
+}
+
+# ─── Homebrew インストール ─────────────────────────────────────────────────
 if ! command -v brew &>/dev/null; then
   log "【install_homebrew】Homebrew が見つからないため、インストールを開始します"
+  # 非対話モードで Homebrew をインストール
   NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-  # インストール完了後、実際にインストールされた brew のパスを取得
-  BREW_PATH="$(command -v brew)"
-  if [ -z "$BREW_PATH" ]; then
-    echo "[ERROR] Homebrew のインストールに失敗した可能性があります。" >&2
-    exit 1
-  fi
-
-  log "【install_homebrew】Homebrew の環境変数設定をシェル用ファイルに追記"
-
-  # 2) ~/.profile に追記（ログインシェル／POSIX 準拠シェル向け）
-  PROFILE_FILE="$HOME/.profile"
-  mkdir -p "$(dirname "$PROFILE_FILE")"
-  touch "$PROFILE_FILE"
-  if ! grep -Fxq "eval \"\$($BREW_PATH shellenv)\"" "$PROFILE_FILE"; then
-    {
-      echo ""
-      echo "# ──────────────────────────────────────────────────────────"
-      echo "# Homebrew の環境変数を読み込む"
-      echo "eval \"\$($BREW_PATH shellenv)\""
-      echo "# ──────────────────────────────────────────────────────────"
-    } >> "$PROFILE_FILE"
-    log "  • ~/.profile に追加しました"
-  else
-    log "  • ~/.profile には既に設定済みです"
-  fi
-
-  # 3) ~/.bashrc に追記（インタラクティブな bash ログイン／非ログインシェル向け）
-  BASHRC_FILE="$HOME/.bashrc"
-  mkdir -p "$(dirname "$BASHRC_FILE")"
-  touch "$BASHRC_FILE"
-  if ! grep -Fxq "eval \"\$($BREW_PATH shellenv)\"" "$BASHRC_FILE"; then
-    {
-      echo ""
-      echo "# ──────────────────────────────────────────────────────────"
-      echo "# Homebrew の環境変数を読み込む"
-      echo "eval \"\$($BREW_PATH shellenv)\""
-      echo "# ──────────────────────────────────────────────────────────"
-    } >> "$BASHRC_FILE"
-    log "  • ~/.bashrc に追加しました"
-  else
-    log "  • ~/.bashrc には既に設定済みです"
-  fi
-
-  # 4) ~/.config/fish/config.fish に追記（Fish シェル向け）
-  FISH_CONFIG_DIR="$HOME/.config/fish"
-  FISH_CONFIG_FILE="$FISH_CONFIG_DIR/config.fish"
-  mkdir -p "$FISH_CONFIG_DIR"
-  touch "$FISH_CONFIG_FILE"
-  # 動的に command -v brew の結果を使う設定を追加
-  if ! grep -Fxq 'if test -f (command -v brew)' "$FISH_CONFIG_FILE"; then
-    {
-      echo ""
-      echo "# ──────────────────────────────────────────────────────────"
-      echo "# Homebrew (Linuxbrew) のパスを Fish で通す"
-      echo "if test -f (command -v brew)"
-      echo "    eval (brew shellenv)"
-      echo "end"
-      echo "# ──────────────────────────────────────────────────────────"
-    } >> "$FISH_CONFIG_FILE"
-    log "  • ~/.config/fish/config.fish に追加しました"
-  else
-    log "  • ~/.config/fish/config.fish には既に設定済みです"
-  fi
-
-  log "【install_homebrew】現在のシェルに Homebrew のパスを反映"
-  eval "$($BREW_PATH shellenv)"
 else
-  # brew が既にインストール済み
-  BREW_PATH="$(command -v brew)"
-  log "【install_homebrew】Homebrew はすでにインストール済み: $BREW_PATH"
-
-  # PATH に brew が通っていなければ現在のシェルに追加
-  if ! echo "$PATH" | grep -q "$(dirname "$BREW_PATH")"; then
-    log "【install_homebrew】Homebrew のパスを現在のシェルに追加"
-    eval "$($BREW_PATH shellenv)"
-  fi
-
-  # 既存設定をチェックし、不足分を追記する
-  PROFILE_FILE="$HOME/.profile"
-  touch "$PROFILE_FILE"
-  if ! grep -Fxq "eval \"\$($BREW_PATH shellenv)\"" "$PROFILE_FILE"; then
-    {
-      echo ""
-      echo "# ──────────────────────────────────────────────────────────"
-      echo "# Homebrew の環境変数を読み込む"
-      echo "eval \"\$($BREW_PATH shellenv)\""
-      echo "# ──────────────────────────────────────────────────────────"
-    } >> "$PROFILE_FILE"
-    log "  • ~/.profile に追記しました"
-  fi
-
-  BASHRC_FILE="$HOME/.bashrc"
-  touch "$BASHRC_FILE"
-  if ! grep -Fxq "eval \"\$($BREW_PATH shellenv)\"" "$BASHRC_FILE"; then
-    {
-      echo ""
-      echo "# ──────────────────────────────────────────────────────────"
-      echo "# Homebrew の環境変数を読み込む"
-      echo "eval \"\$($BREW_PATH shellenv)\""
-      echo "# ──────────────────────────────────────────────────────────"
-    } >> "$BASHRC_FILE"
-    log "  • ~/.bashrc に追記しました"
-  fi
-
-  FISH_CONFIG_DIR="$HOME/.config/fish"
-  FISH_CONFIG_FILE="$FISH_CONFIG_DIR/config.fish"
-  mkdir -p "$FISH_CONFIG_DIR"
-  touch "$FISH_CONFIG_FILE"
-  if ! grep -Fxq 'if test -f (command -v brew)' "$FISH_CONFIG_FILE"; then
-    {
-      echo ""
-      echo "# ──────────────────────────────────────────────────────────"
-      echo "# Homebrew (Linuxbrew) のパスを Fish で通す"
-      echo "if test -f (command -v brew)"
-      echo "    eval (brew shellenv)"
-      echo "end"
-      echo "# ──────────────────────────────────────────────────────────"
-    } >> "$FISH_CONFIG_FILE"
-    log "  • ~/.config/fish/config.fish に追記しました"
-  fi
+  log "【install_homebrew】Homebrew はすでにインストール済みです"
 fi
 
-log "【install_homebrew】完了: Homebrew がインストールされました"
+# Homebrew がどこにインストールされたかを取得
+BREW_PATH="$(command -v brew || true)"
+if [ -z "$BREW_PATH" ]; then
+  echo "[ERROR] Homebrew の実行ファイルが見つかりません。インストールに失敗した可能性があります。" >&2
+  exit 1
+fi
+log "【install_homebrew】Homebrew のパス: $BREW_PATH"
+
+# ─── Bash 用の設定を ~/.bashrc に追記 ─────────────────────────────────────────
+BREW_PREFIX="$("$BREW_PATH" --prefix)"
+# shellenv の eval 文をそのまま文字列として追加
+BREW_SHELLENV="eval \"\$($BREW_PREFIX/bin/brew shellenv)\""
+
+append_if_missing "" "$HOME/.bashrc"
+append_if_missing "# ──────────────────────────────────────────────────────────" "$HOME/.bashrc"
+append_if_missing "# Homebrew の環境変数を読み込む" "$HOME/.bashrc"
+append_if_missing "$BREW_SHELLENV" "$HOME/.bashrc"
+append_if_missing "# ──────────────────────────────────────────────────────────" "$HOME/.bashrc"
+log "【install_homebrew】~/.bashrc に brew の shellenv 設定を追記しました"
+
+# ─── 現在のシェルに即時反映 ───────────────────────────────────────────────────
+log "【install_homebrew】現在のシェルに Homebrew の環境を反映します"
+eval "$("$BREW_PATH" shellenv)"
+
+log "【install_homebrew】完了: Homebrew がインストールされ、Bash にパスが通りました"
