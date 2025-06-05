@@ -1,0 +1,22 @@
+# fish_plugins/fishfile
+
+# 1. Tide プロンプトテーマ v5
+ilancosman/tide@v5
+
+# 2. zoxide.fish (AOT 初期化版 zoxide)
+kidonng/zoxide.fish
+
+# 3. ghq 補完 + キーバインド
+decors/fish-ghq
+
+# 4. eza 用プラグイン
+givensuman/fish-eza
+
+# 5. fzf 連携
+PatrickF1/fzf.fish
+
+# 6. nvm (Node.js バージョン管理)
+jorgebucaran/nvm.fish
+
+# 7. done (通知プラグイン)
+franciscolourenco/done
